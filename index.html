@@ -201,7 +201,7 @@ td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
   .board{max-width:none}
 }
 @media (max-width:420px){.final{grid-template-columns:minmax(0,1fr)} .dialog{padding:18px}}
-.fsbtn{padding:8px 14px;min-height:36px;font-size:13px}
+.fsbtn{position:fixed;right:12px;bottom:12px;z-index:30;padding:8px 14px;min-height:40px;font-size:13px;background:var(--surface,#fff);box-shadow:0 2px 10px rgba(0,0,0,.2)}
 .rotatetip{display:none;margin:8px 0 0}
 @media (pointer:coarse) and (orientation:portrait){.rotatetip{display:block}}
 .pinrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 10px}
@@ -287,7 +287,6 @@ td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
     <div class="topbar">
       <h1>Eco Wise</h1>
       <small>AP9 Economics · 3rd Quarter Board Game</small>
-      <button class="btn ghost fsbtn" id="fsBtn" type="button" hidden>Landscape full screen</button>
     </div>
     <p class="note rotatetip">Tip: turn your phone sideways for a bigger board.</p>
     <div class="stats" style="margin-top:14px">
@@ -397,6 +396,7 @@ td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
 </div>
 <div class="toasts" id="toasts" aria-live="polite"></div>
 
+<button class="btn ghost fsbtn" id="fsBtn" type="button" hidden>Full screen</button>
 <script>
 //#PURE-START
 const OPT={
@@ -1166,8 +1166,8 @@ loadQuiz();
 
 /* ============ landscape helper (phones follow the device when auto-rotate is on) ============ */
 const fsBtn=$('#fsBtn');
-function fsLabel(){ fsBtn.textContent=document.fullscreenElement?'Exit full screen':'Landscape full screen'; }
-if(document.documentElement.requestFullscreen&&window.matchMedia&&matchMedia('(pointer:coarse)').matches){ fsBtn.hidden=false; fsLabel(); }
+function fsLabel(){ fsBtn.textContent=document.fullscreenElement?'Exit full screen':'Full screen'; }
+if(document.documentElement.requestFullscreen&&document.fullscreenEnabled!==false){ fsBtn.hidden=false; fsLabel(); }
 fsBtn.addEventListener('click',async()=>{
   try{
     if(document.fullscreenElement){
