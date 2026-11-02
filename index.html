@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect x='6' y='6' width='52' height='52' rx='12' fill='%230E4D64'/%3E%3Ccircle cx='20' cy='20' r='5' fill='%23F6D77A'/%3E%3Ccircle cx='32' cy='32' r='5' fill='%23F6D77A'/%3E%3Ccircle cx='44' cy='44' r='5' fill='%23F6D77A'/%3E%3C/svg%3E">
 <style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,sans-serif}img{max-width:100%}[hidden]{display:none!important}</style>
-<title>Eco-Wise</title>
+<title>Eco Wise</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap">
@@ -189,6 +189,9 @@ tr:last-child td{border-bottom:0}
 td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
 
 .note{font-size:13px;color:var(--muted)}
+.quizerr{border:1.5px solid var(--line);background:var(--bg);border-radius:12px;padding:10px 14px;font-size:14px;display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center}
+.quizerr.bad{border-color:var(--bad);color:var(--ink)}
+.quizerr .msg{flex:1 1 240px;min-width:0;overflow-wrap:anywhere}
 .toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:8px 10px}
 .toolbar h3{margin:0}
 #records table{min-width:560px}
@@ -252,8 +255,8 @@ td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
   <section id="welcome" aria-labelledby="wtitle">
     <div class="hero">
       <div class="eyebrow">AP9 Economics · 3rd Quarter Board Game</div>
-      <h1 id="wtitle">Eco-<span>Wise</span></h1>
-      <p>A classroom board game for economics. Build your character, roll, land, and answer 10 questions to finish the round. Earn badges along the way.</p>
+      <h1 id="wtitle">Eco <span>Wise</span></h1>
+      <p>A classroom board game for economics. Build your character, roll, land, and answer <span id="heroCount">10</span> questions to finish the round. Earn badges along the way.</p>
     </div>
     <div class="setup" style="margin-top:18px">
       <div class="locker">
@@ -269,8 +272,9 @@ td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
         </div>
         <div class="tabs" id="tabs" role="tablist" aria-label="Customize your character"></div>
         <div id="custom" style="display:flex;flex-direction:column;gap:16px"></div>
+        <div class="quizerr" id="quizNote" role="status" hidden></div>
         <div class="row-actions">
-          <button class="btn" id="begin" type="button">Begin the game</button>
+          <button class="btn" id="begin" type="button" disabled>Begin the game</button>
           <button class="btn ghost" id="surprise" type="button">Surprise me</button>
           <button class="btn ghost" id="viewRec" type="button">View records</button>
         </div>
@@ -281,7 +285,7 @@ td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
   <!-- ============ GAME ============ -->
   <section id="game" hidden>
     <div class="topbar">
-      <h1>Eco-Wise</h1>
+      <h1>Eco Wise</h1>
       <small>AP9 Economics · 3rd Quarter Board Game</small>
       <button class="btn ghost fsbtn" id="fsBtn" type="button" hidden>Landscape full screen</button>
     </div>
@@ -301,18 +305,13 @@ td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
             <li>The player will take a turn rolling the dice.</li>
             <li>Once rolled, the number shown is how many tiles the player will jump.</li>
             <li>The landed tile determines the difficulty of the question the student will answer.</li>
-            <li>All questions are multiple choice. <b>Easy</b> questions are worth 10 points, <b>Average</b> 15 and <b>Difficult</b> 25.</li>
-            <li>Each student must answer a total of <b>10 questions</b>.</li>
+            <li id="ruleTypes"></li>
+            <li id="ruleCount"></li>
             <li>Checking is done after the whole game, on the results board.</li>
           </ol>
         </div>
         <div class="card">
-          <div class="legend">
-            <div><span class="sq" style="background:var(--start-bg)"></span>Start<em>draw</em></div>
-            <div><span class="sq" style="background:var(--easy-bg)"></span>Easy · Multiple Choice<em>+10</em></div>
-            <div><span class="sq" style="background:var(--avg-bg)"></span>Average · Multiple Choice<em>+15</em></div>
-            <div><span class="sq" style="background:var(--hard-bg)"></span>Difficult · Multiple Choice<em>+25</em></div>
-          </div>
+          <div class="legend" id="legend"></div>
         </div>
         <div class="card">
           <h3>Badges <span class="mono" id="badgeCount" style="font-size:13px;color:var(--muted)"></span></h3>
@@ -617,11 +616,11 @@ function avatarSVG(c,view){
   return `<svg viewBox="${vb}" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" focusable="false">${o.join('')}</svg>`;
 }
 
-const TYPES={E:{name:'Easy',kind:'Multiple Choice',pts:10,cls:'easy',short:'EASY'},
-             A:{name:'Average',kind:'Multiple Choice',pts:15,cls:'avg',short:'AVG'},
-             D:{name:'Difficult',kind:'Multiple Choice',pts:25,cls:'hard',short:'HARD'}};
-const BOARD=['S','E','A','D','E','A','E','D','A','E','A','D','E','A','E','D','A','E','D','A'];
-const TOTAL_Q=10;
+const KIND_LABEL={multiple_choice:'Multiple Choice',true_false:'True / False',identification:'Identification'};
+const SECTION_KEYS=['E','A','D'], SECTION_CLS=['easy','avg','hard'];
+const BOARD_BASE=['S','E','A','D','E','A','E','D','A','E','A','D','E','A','E','D','A','E','D','A'];
+/* Filled from questions.json by applyQuiz() */
+let TYPES={}, QS={E:[],A:[],D:[]}, BOARD=BOARD_BASE.slice(), TOTAL_Q=10, SHUFFLE=true, BADGES=[];
 
 function cellPos(i){
   if(i<=5) return {r:1,c:i+1};
@@ -629,36 +628,76 @@ function cellPos(i){
   if(i<=15) return {r:6,c:6-(i-10)};
   return {r:5-(i-16),c:1};
 }
-function norm(s){
-  return String(s).toLowerCase().replace(/[^a-z0-9\s]/g,' ').replace(/\s+/g,' ').trim().replace(/^(the|a|an)\s+/,'');
+/* Typed answers: ignore capital letters, spaces, hyphens, punctuation and accents. */
+function normAnswer(s){
+  return String(s==null?'':s).normalize('NFD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^\p{L}\p{N}]/gu,'');
 }
+function checkId(q,input){ const n=normAnswer(input); return n!=='' && q.accept.some(a=>normAnswer(a)===n); }
 
-const QS={
-E:[
- {q:'Ano ang ibig sabihin ng financial literacy?',a:'Kakayahang maunawaan at mapamahalaan nang maayos ang pananalapi',o:['Kakayahang maunawaan at mapamahalaan ang salapi upang kumita ng malaking halaga at mabili ang gusto','Kakayahang bumili ng mga ninanais na kagamitan ng hindi pinag-iisipan','Kakayahang makapag negosyo nang walang inilalabas na puhunan']},
- {q:'Alin sa mga sumusunod ang halimbawa ng pangunahing pangangailangan ng tao?',a:'Pagkain, tubig, at kasuotan',o:['Alahas, sasakyan, at laruan','Cellphone, telebisyon, at computer','Paglalakbay, libangan, at mamahaling sapatos']},
- {q:'Ano ang tawag sa mga bagay na ninanais ng tao ngunit hindi kinakailangan upang mabuhay?',a:'Kagustuhan',o:['Pangangailangan','Pera','Pag-iimpok']},
- {q:'Ano ang tawag sa pagpaplano kung paano gagamitin ang pera?',a:'Pagbabadyet',o:['Pag-iimpok','Pamumuhunan','Pangungutang']},
- {q:'Ano ang tawag sa pagtatabi ng bahagi ng pera upang magamit sa hinaharap?',a:'Pag-iimpok',o:['Paggastos','Pangungutang','Pagbili']},
- {q:'Bakit mahalagang matutuhan ang pag-iimpok kahit sa murang edad?',a:'Dahil nakatutulong ito sa paghahanda para sa mga pangangailangan sa hinaharap',o:['Dahil maaari nang bilhin ang lahat ng kagustuhan','Dahil hindi na kailangang magtrabaho sa hinaharap','Dahil awtomatikong lumalaki ang anumang perang naitatabi']}
-],
-A:[
- {q:'Anong institusyon ang nagbibigay ng impormasyon tungkol sa financial literacy sa Pilipinas?',a:'Bangko Sentral ng Pilipinas',o:['Department of Education','Department of Health','Department of the Philippines']},
- {q:'Alin sa mga sumusunod ang HINDI kabilang sa mga sumusunod na may kaugnayan sa financial literacy?',a:'Walang planong paggastos',o:['Pagbabadyet','Pag-iimpok','Pamamahala ng utang']},
- {q:'Ano ang layunin ng financial literacy?',a:'Tulungan ang tao na gumawa ng matalinong desisyong pampinansiyal',o:['Hikayatin ang mga tao na gumastos nang mas malaki dahil mapapasaya sila nito','Hikayatin ang mga tao na umutang palagi dahil babayaran din naman','Turuan ang tao na bumili ng mamahaling produkto dahil mas matibay ang mga ito']},
- {q:'Alin sa mga sumusunod ang halimbawa ng kagustuhan?',a:'Rolex',o:['Tahanan','Pagkain','Kasuotan']},
- {q:'Ano ang tawag sa paggamit ng pera upang magkaroon ng posibilidad na lumago ang halaga nito sa hinaharap?',a:'Pamumuhunan',o:['Pag-iimpok','Pagbabadyet','Paggastos']},
- {q:'Si Ana ay may ₱100 na baon. Nais niyang bumili ng laruan ngunit kailangan niyang bumili ng pagkain. Ano ang pinakamainam niyang gawin?',a:'Unahin ang pagkain dahil ito ay pangunahing pangangailangan',o:['Bilhin ang laruan dahil bibigyan din naman ulit siya ng pera ng kanyang magulang','Gastusin ang pera sa ibang bagay','Mangutang upang mabili ang dalawang bagay']},
- {q:'Alin sa mga sumusunod na sitwasyon ang pinakamahusay na nagpapakita ng matalinong pamamahalang pampinansiyal?',a:'Inilalaan ni Mia ang kaniyang pera para sa pagkain, pamasahe, at pag-iimpok',o:['Ginagamit ni Leo ang kaniyang buong baon sa pagbili ng mga laruan','Nangungutang si Mark upang makabili ng bagong sapatos kahit mayroon pa siyang maayos na sapatos','Inuuna ni Ella ang kaniyang mga kagustuhan bago ang pangangailangan']}
-],
-D:[
- {q:'Bakit mahalagang matukoy ang pagkakaiba ng pangangailangan at kagustuhan?',a:'Upang malaman kung alin ang dapat unahin sa paggastos',o:['Upang malaman kung paano gagastusin ang lahat ng pera','Upang maiwasan ang pagbili ng anumang produkto','Upang mabili ang lahat ng mamahaling bagay']},
- {q:'Si Marco ay may maayos pang cellphone ngunit nais niyang bumili ng bagong modelo dahil uso ito. Bakit maituturing na kagustuhan ang nais niyang bilhin?',a:'Dahil nais lamang niyang magkaroon ng bagong modelo kahit maayos pa ang kaniyang gamit',o:['Dahil hindi na gumagana ang kaniyang cellphone','Dahil kailangan niya ito sa kaniyang pag-aaral','Dahil wala siyang ibang paraan upang makipag-ugnayan']},
- {q:'Bakit mahalaga ang pagbabadyet sa pang-araw-araw na buhay?',a:'Dahil nakatutulong ito upang mapagplanuhan ang paggamit ng pera',o:['Dahil nagbibigay ito ng walang limitasyong pera','Dahil pinahihintulutan nito ang pagbili ng lahat ng kagustuhan','Dahil hindi na kailangang isipin ang mga gastusin']},
- {q:'Si Carla ay nagtatabi ng ₱20 mula sa kaniyang baon araw-araw. Ano ang ipinapakita ng kaniyang ginagawa?',a:'Pagiging responsable sa pag-iimpok',o:['Pagiging magastos','Kawalan ng pagpapahalaga sa pera','Hindi wastong paggamit ng baon']},
- {q:'Bakit maaaring ituring na pangangailangan ng isang mag-aaral ang cellphone ngunit kagustuhan lamang para sa iba?',a:'Dahil nakabatay ang pagiging pangangailangan o kagustuhan sa sitwasyon at paggamit ng tao',o:['Dahil pare-pareho ang layunin ng lahat sa paggamit nito','Dahil lahat ng cellphone ay pangunahing pangangailangan','Dahil ang cellphone ay ginagamit lamang sa paglalaro']},
- {q:'Napansin ni Ben na madalas maubos ang kaniyang baon sa pagbili ng mga hindi kinakailangang bagay. Paano makatutulong sa kaniya ang financial literacy?',a:'Mauunawaan niya kung paano unahin ang mahahalagang gastusin',o:['Matututuhan niyang gastusin agad ang kaniyang pera','Mahihikayat siyang bumili ng mas maraming produkto','Matututuhan niyang huwag nang pagplanuhan ang kaniyang baon']}
-]};
+/* Reads questions.json and checks it. Throws an Error with a plain message when something is wrong. */
+function parseQuiz(data){
+  const fail=m=>{ throw new Error(m); };
+  if(!data||typeof data!=='object'||!Array.isArray(data.sections)) fail('The file needs a "sections" list.');
+  if(data.sections.length<1||data.sections.length>3) fail('Use 1 to 3 sections (for example Easy, Average and Hard).');
+  const types={}, qs={}; let total=0;
+  data.sections.forEach((sec,si)=>{
+    const key=SECTION_KEYS[si];
+    const level=String(sec&&sec.level||'').trim(); if(!level) fail('Section '+(si+1)+' needs a "level" name.');
+    const kind=sec.type; if(!KIND_LABEL[kind]) fail('Section "'+level+'": "type" must be multiple_choice, true_false or identification.');
+    const pts=sec.pointsPerQuestion==null?1:Number(sec.pointsPerQuestion);
+    if(!Number.isFinite(pts)||pts<0) fail('Section "'+level+'": "pointsPerQuestion" must be a number.');
+    if(!Array.isArray(sec.questions)||!sec.questions.length) fail('Section "'+level+'" has no questions.');
+    types[key]={name:level,kind:KIND_LABEL[kind],kindKey:kind,pts:pts,cls:SECTION_CLS[si],short:level.toUpperCase()};
+    qs[key]=sec.questions.map((raw,qi)=>{
+      const label=level+' question '+(qi+1);
+      const text=String(raw&&raw.question||'').trim(); if(!text) fail(label+' has no "question" text.');
+      const q={id:raw.id!=null?raw.id:key+(qi+1),q:text,kind:kind};
+      if(kind==='multiple_choice'){
+        const ch=raw.choices; if(!ch||typeof ch!=='object'||Array.isArray(ch)) fail(label+': "choices" must look like {"A": "...", "B": "..."}.');
+        const keys=Object.keys(ch); if(keys.length<2) fail(label+': needs at least 2 choices.');
+        q.choices=keys.map(k=>({key:k,text:String(ch[k])}));
+        const a=String(raw.answer==null?'':raw.answer).trim();
+        const hit=q.choices.find(c=>c.key===a)||q.choices.find(c=>c.key.toLowerCase()===a.toLowerCase());
+        if(!hit) fail(label+': the answer "'+a+'" is not one of its choices ('+keys.join(', ')+').');
+        q.answerText=hit.text;
+      } else if(kind==='true_false'){
+        let a=raw.answer; if(typeof a==='string'){ const s=a.trim().toLowerCase(); if(s==='true') a=true; else if(s==='false') a=false; }
+        if(typeof a!=='boolean') fail(label+': "answer" must be true or false.');
+        q.answerBool=a; q.answerText=a?'True':'False';
+      } else {
+        const a=String(raw.answer==null?'':raw.answer).trim(); if(!a) fail(label+': needs an "answer".');
+        const extra=Array.isArray(raw.alsoAccept)?raw.alsoAccept.map(String):[];
+        q.accept=[a].concat(extra); q.answerText=a;
+      }
+      return q;
+    });
+    total+=qs[key].length;
+  });
+  let per=Number(data.questionsPerRound); per=(Number.isInteger(per)&&per>=1)?per:10; per=Math.min(per,total);
+  return {types:types,qs:qs,perRound:per,shuffle:data.shuffleChoices!==false,title:String(data.title||'')};
+}
+function boardPlan(types){
+  const avail=Object.keys(types);
+  return BOARD_BASE.map((t,i)=>t==='S'?'S':(types[t]?t:avail[i%avail.length]));
+}
+function makeBadges(){
+  const need=Math.ceil(TOTAL_Q*0.8), L=k=>TYPES[k]&&TYPES[k].name;
+  const all=[
+   {id:'first-roll',name:'First Roll',desc:'Roll the dice for the first time.',icon:'dice'},
+   {id:'sharp-start',name:'Sharp Start',desc:'Get your first question right.',icon:'target'},
+   {id:'streak3',name:'Hot Streak',desc:'Answer 3 in a row correctly.',icon:'bolt'},
+   {id:'streak5',name:'Unstoppable',desc:'Answer 5 in a row correctly.',icon:'star'},
+   {id:'lap',name:'Full Lap',desc:'Pass START and keep going.',icon:'loop'},
+   {id:'easy3',name:'Easy Money',desc:'Get 3 '+L('E')+' questions right.',icon:'coin',need:'E'},
+   {id:'avg3',name:'Steady Hand',desc:'Get 3 '+L('A')+' questions right.',icon:'scale',need:'A'},
+   {id:'hard2',name:'Deep Thinker',desc:'Get 2 '+L('D')+' questions right.',icon:'bulb',need:'D'},
+   {id:'quick',name:'Quick Draw',desc:'Answer correctly in 8 seconds or less.',icon:'clock'},
+   {id:'comeback',name:'Comeback Kid',desc:'Get one right after 2 misses in a row.',icon:'heart'},
+   {id:'honor',name:'Honor Roll',desc:'Answer '+need+' of '+TOTAL_Q+' correctly.',icon:'flag'},
+   {id:'perfect',name:'Perfect Round',desc:'Answer all '+TOTAL_Q+' questions correctly.',icon:'crown'}
+  ];
+  return all.filter(b=>!b.need||TYPES[b.need]);
+}
 const ICON={
  star:{d:'M12 2l3 6.5 7 .8-5.2 4.8 1.5 7L12 17.8 5.7 21.1l1.5-7L2 9.3l7-.8z',fill:1},
  bolt:{d:'M13 2L4 14h6l-1 8 9-12h-6z',fill:1},
@@ -674,20 +713,6 @@ const ICON={
  heart:{d:'M12 21s-8-5-8-11a4.5 4.5 0 018-2.8A4.5 4.5 0 0120 10c0 6-8 11-8 11z'},
  scale:{d:'M12 3v18M6 21h12M5 7h14M5 7l-3 7a3 3 0 006 0zM19 7l-3 7a3 3 0 006 0z'}
 };
-const BADGES=[
- {id:'first-roll',name:'First Roll',desc:'Roll the dice for the first time.',icon:'dice'},
- {id:'sharp-start',name:'Sharp Start',desc:'Get your first question right.',icon:'target'},
- {id:'streak3',name:'Hot Streak',desc:'Answer 3 in a row correctly.',icon:'bolt'},
- {id:'streak5',name:'Unstoppable',desc:'Answer 5 in a row correctly.',icon:'star'},
- {id:'lap',name:'Full Lap',desc:'Pass START and keep going.',icon:'loop'},
- {id:'easy3',name:'Easy Money',desc:'Get 3 Easy questions right.',icon:'coin'},
- {id:'avg3',name:'Steady Hand',desc:'Get 3 Average questions right.',icon:'scale'},
- {id:'hard2',name:'Deep Thinker',desc:'Get 2 Difficult questions right.',icon:'bulb'},
- {id:'quick',name:'Quick Draw',desc:'Answer correctly in 8 seconds or less.',icon:'clock'},
- {id:'comeback',name:'Comeback Kid',desc:'Get one right after 2 misses in a row.',icon:'heart'},
- {id:'century',name:'Century Club',desc:'Reach 100 points.',icon:'flag'},
- {id:'perfect',name:'Perfect Round',desc:'Answer all 10 questions correctly.',icon:'crown'}
-];
 function iconSVG(name){
   const i=ICON[name]; const f=i.fill?'currentColor':'none';
   return `<svg viewBox="0 0 24 24" fill="${f}" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="${i.d}"/></svg>`;
@@ -766,10 +791,41 @@ $('#begin').addEventListener('click',()=>{
 $('#pname').addEventListener('keydown',e=>{if(e.key==='Enter')$('#begin').click()});
 renderCustom(); refreshPreview();
 
+/* ============ questions (questions.json) ============ */
+function renderRules(){
+  const ks=Object.keys(TYPES);
+  $('#legend').innerHTML='<div><span class="sq" style="background:var(--start-bg)"></span>Start<em>draw</em></div>'+
+    ks.map(k=>{ const T=TYPES[k]; return `<div><span class="sq" style="background:var(--${T.cls}-bg)"></span>${esc(T.name)} · ${esc(T.kind)}<em>+${T.pts}</em></div>`; }).join('');
+  const parts=ks.map(k=>`<b>${esc(TYPES[k].name.toUpperCase())}</b> asks ${esc(TYPES[k].kind)} (+${TYPES[k].pts})`);
+  $('#ruleTypes').innerHTML='The tile you land on sets the question type: '+parts.join(', ')+'.';
+  $('#ruleCount').innerHTML=`Each student must answer a total of <b>${TOTAL_Q} questions</b>.`;
+  $('#heroCount').textContent=TOTAL_Q;
+}
+function applyQuiz(p){
+  TYPES=p.types; QS=p.qs; TOTAL_Q=p.perRound; SHUFFLE=p.shuffle; BOARD=boardPlan(p.types); BADGES=makeBadges();
+  renderRules();
+}
+async function loadQuiz(){
+  const note=$('#quizNote'), btn=$('#begin');
+  btn.disabled=true; note.hidden=false; note.className='quizerr'; note.textContent='Loading questions...';
+  try{
+    let r; try{ r=await fetch('questions.json',{cache:'no-cache'}); }catch(e){ throw new Error('The questions file could not be reached. Open the game from its web address, and check your connection.'); }
+    if(!r.ok) throw new Error('The file questions.json was not found next to the game.');
+    let data; try{ data=await r.json(); }catch(e){ throw new Error('questions.json is not valid JSON. Look for a missing comma, quote or bracket.'); }
+    applyQuiz(parseQuiz(data));
+    note.hidden=true; btn.disabled=false;
+  }catch(e){
+    note.className='quizerr bad';
+    note.innerHTML=`<span class="msg"><b>Questions could not be loaded.</b> ${esc(e.message)}</span><button class="btn ghost" id="retryQuiz" type="button">Try again</button>`;
+    $('#retryQuiz').addEventListener('click',loadQuiz);
+  }
+}
+
 /* ============ game ============ */
 function show(id){ ['welcome','game','results','records'].forEach(s=>$('#'+s).hidden=(s!==id)); window.scrollTo(0,0); }
 function newState(){
-  return {pos:0,score:0,done:0,correct:0,streak:0,wrongRun:0,laps:0,byType:{E:0,A:0,D:0},results:[],used:{E:[],A:[],D:[]},busy:false,round:new Set(),log:[],qStart:0};
+  const ks=Object.keys(TYPES), zero=()=>Object.fromEntries(ks.map(k=>[k,0])), none=()=>Object.fromEntries(ks.map(k=>[k,[]]));
+  return {pos:0,score:0,done:0,correct:0,streak:0,wrongRun:0,laps:0,byType:zero(),results:[],used:none(),busy:false,round:new Set(),log:[],qStart:0};
 }
 function addLog(t){ S.log.unshift(t); S.log=S.log.slice(0,30); $('#log').innerHTML=S.log.map(x=>`<li>${esc(x)}</li>`).join(''); }
 function spaceLabel(){ const t=BOARD[S.pos]; return t==='S'?'START':`#${S.pos} · ${TYPES[t].name}`; }
@@ -788,7 +844,7 @@ function buildBoard(){
     b.appendChild(d);
   });
   const c=document.createElement('div'); c.className='center';
-  c.innerHTML=`<div class="brand">Eco-Wise</div><div class="die" id="die" aria-label="Dice"></div><button class="btn" id="roll" type="button">Roll the dice</button><div class="hint" id="hint">Roll to take your turn</div>`;
+  c.innerHTML=`<div class="brand">Eco Wise</div><div class="die" id="die" aria-label="Dice"></div><button class="btn" id="roll" type="button">Roll the dice</button><div class="hint" id="hint">Roll to take your turn</div>`;
   b.appendChild(c);
   $('#roll').addEventListener('click',roll);
   setDie(1);
@@ -848,7 +904,7 @@ async function roll(){
     if(!reduced) await sleep(210);
   }
   const tile=BOARD[S.pos]; let type=tile;
-  if(tile==='S'){ type=['E','A','D'][Math.floor(Math.random()*3)]; addLog(`Rolled ${n}, landed on START and drew a ${TYPES[type].name} question`); }
+  if(tile==='S'){ const ks=Object.keys(TYPES); type=ks[Math.floor(Math.random()*ks.length)]; addLog(`Rolled ${n}, landed on START and drew a ${TYPES[type].name} question`); }
   else addLog(`Rolled ${n}, landed on #${S.pos} (${TYPES[tile].name})`);
   await sleep(reduced?0:250);
   ask(type);
@@ -856,7 +912,7 @@ async function roll(){
 
 function draw(type){
   /* Never repeat a question in one round. If this difficulty has none left, use an unused one from another difficulty. */
-  const order=[type,...['E','A','D'].filter(t=>t!==type)];
+  const order=[type,...Object.keys(TYPES).filter(t=>t!==type)];
   for(const t of order){
     const pool=QS[t], used=S.used[t];
     const left=pool.map((_,i)=>i).filter(i=>!used.includes(i));
@@ -866,31 +922,45 @@ function draw(type){
     }
   }
   /* Only reachable if a round were longer than the whole question bank. */
-  S.used={E:[],A:[],D:[]};
+  Object.keys(S.used).forEach(k=>S.used[k]=[]);
   return draw(type);
 }
 function ask(type){
   const drawn=draw(type); type=drawn.type;
   const T=TYPES[type], q=drawn.q;
   const d=$('#dialog');
-  const opts=shuffle([q.a,...q.o]);
-  const body=`<div class="answers">${opts.map((o,i)=>`<button class="ans" type="button" data-v="${esc(o)}"><span class="k">${'ABCD'[i]}</span><span>${esc(o)}</span></button>`).join('')}</div>`;
-  d.innerHTML=`<div class="meta"><span class="pill ${T.cls}">${T.name} · ${T.kind} · +${T.pts}</span><span class="mono eyebrow">Question ${S.done+1} of ${TOTAL_Q}</span></div>
+  let body='';
+  if(q.kind==='multiple_choice'){
+    const ch=SHUFFLE?shuffle(q.choices):q.choices;
+    body=`<div class="answers">${ch.map((c,i)=>`<button class="ans" type="button" data-v="${esc(c.text)}"><span class="k">${'ABCDEFGH'[i]||'•'}</span><span>${esc(c.text)}</span></button>`).join('')}</div>`;
+  } else if(q.kind==='true_false'){
+    body=`<div class="tf"><button class="ans" type="button" data-v="true">True</button><button class="ans" type="button" data-v="false">False</button></div>`;
+  } else {
+    body=`<form class="idform" id="idform"><input id="idin" type="text" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type your answer" aria-label="Your answer"><button class="btn" type="submit">Submit</button></form>`;
+  }
+  d.innerHTML=`<div class="meta"><span class="pill ${T.cls}">${esc(T.name)} · ${esc(T.kind)} · +${T.pts}</span><span class="mono eyebrow">Question ${S.done+1} of ${TOTAL_Q}</span></div>
     <div class="q" id="qtext">${esc(q.q)}</div><div id="area">${body}</div>`;
   $('#scrim').hidden=false;
   S.qStart=performance.now();
   const first=d.querySelector('input,.ans'); if(first) first.focus();
   let answered=false;
   const submit=(given)=>{ if(answered) return; answered=true; finish(type,q,given); };
-  d.querySelectorAll('.ans').forEach(b=>b.addEventListener('click',()=>submit(b.dataset.v)));
+  if(q.kind==='identification'){
+    $('#idform').addEventListener('submit',e=>{ e.preventDefault(); const v=$('#idin').value.trim(); if(!v) return; submit(v); });
+  } else {
+    d.querySelectorAll('.ans').forEach(b=>b.addEventListener('click',()=>submit(q.kind==='true_false'?(b.dataset.v==='true'):b.dataset.v)));
+  }
 }
 function finish(type,q,given){
   const T=TYPES[type]; const secs=(performance.now()-S.qStart)/1000;
-  const ok=given===q.a, shown=given;
+  let ok, shown;
+  if(q.kind==='multiple_choice'){ ok=given===q.answerText; shown=given; }
+  else if(q.kind==='true_false'){ ok=given===q.answerBool; shown=given?'True':'False'; }
+  else { ok=checkId(q,given); shown=given; }
   S.done++;
   const wasWrongRun=S.wrongRun;
   if(ok){ S.correct++; S.score+=T.pts; S.streak++; S.wrongRun=0; S.byType[type]++; } else { S.streak=0; S.wrongRun++; }
-  S.results.push({n:S.done,type:`${T.name} · ${T.kind}`,q:q.q,given:shown,key:q.a,ok});
+  S.results.push({n:S.done,type:`${T.name} · ${T.kind}`,q:q.q,given:shown,key:q.answerText,ok});
   addLog(ok?`Answer ${S.done}: correct, +${T.pts}`:`Answer ${S.done}: recorded, no points`);
   renderStats();
   if(ok){
@@ -902,9 +972,9 @@ function finish(type,q,given){
     if(S.byType.D>=2) award('hard2');
     if(secs<=8) award('quick');
     if(wasWrongRun>=2) award('comeback');
-    if(S.score>=100) award('century');
   }
   const last=S.done>=TOTAL_Q;
+  if(last&&S.correct>=Math.ceil(TOTAL_Q*0.8)) award('honor');
   if(last&&S.correct===TOTAL_Q) award('perfect');
   $('#area').innerHTML=`<div class="verdict ${ok?'ok':'no'}"><strong>${ok?`Correct! +${T.pts}`:'Not quite. 0 points.'}</strong><span>${ok?'Nice work.':'The answer key will be on the results board.'}</span></div>
     <button class="btn" id="next" type="button" style="margin-top:12px;align-self:flex-start">${last?'See results':'Continue'}</button>`;
@@ -1055,8 +1125,18 @@ async function saveRound(){
   $('#saveLocal').textContent='Saved on this device.';
   const sh=$('#saveShared'); sh.textContent='Saving to class records...';
   if(!HAS_CLAUDE){
-    try{ await api('POST',rec); sh.textContent='Saved to class records.'; }
-    catch(e){ sh.textContent=(e&&e.code==='storage_not_configured'?'Class records are not set up on this site yet.':'Could not reach class records.')+' The score is still on this device.'; }
+    /* Retry a few times with a random pause, so a whole class finishing together does not overload the free storage limit. */
+    let done=false, last=null;
+    for(let a=0;a<4&&!done;a++){
+      try{ await api('POST',rec); done=true; }
+      catch(e){
+        last=e;
+        if(e&&e.code==='storage_not_configured') break;
+        if(e&&e.status&&e.status<500&&e.status!==429) break;
+        if(a<3){ sh.textContent='Saving to class records... trying again'; await sleep(1200+Math.random()*2500*(a+1)); }
+      }
+    }
+    sh.textContent=done?'Saved to class records.':(last&&last.code==='storage_not_configured'?'Class records are not set up on this site yet.':'Could not reach class records.')+' The score is still on this device.';
     return;
   }
   const o=await capsReady();
@@ -1081,6 +1161,8 @@ $('#sortNew').addEventListener('click',()=>{recSort='newest';renderRecords();});
 $('#sortTop').addEventListener('click',()=>{recSort='score';renderRecords();});
 $('#dlClass').addEventListener('click',()=>downloadRows(classRows,$('#classNote')));
 $('#dlDevice').addEventListener('click',()=>downloadRows(deviceRows(),$('#devNote')));
+
+loadQuiz();
 
 /* ============ landscape helper (phones follow the device when auto-rotate is on) ============ */
 const fsBtn=$('#fsBtn');

@@ -1,5 +1,5 @@
 // Tiny local server so you can try the whole game on your computer:  npm run dev
-// Serves index.html and the same /api/scores code that Vercel runs. Records go to data/scores.json.
+// Serves index.html, questions.json and the same /api/scores code that Vercel runs. Records go to data/scores.json.
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import handler from './api/scores.js';
@@ -14,5 +14,10 @@ http.createServer(async (req, res) => {
     res.setHeader('Content-Type', 'text/html; charset=utf-8');
     return res.end(await readFile(new URL('./index.html', import.meta.url)));
   }
+  if (url.pathname === '/questions.json') {
+    res.setHeader('Content-Type', 'application/json; charset=utf-8');
+    res.setHeader('Cache-Control', 'no-cache');
+    return res.end(await readFile(new URL('./questions.json', import.meta.url)));
+  }
   res.statusCode = 404; res.end('Not found');
-}).listen(port, () => console.log(`Wealth Wise running at http://localhost:${port}`));
+}).listen(port, () => console.log(`Eco Wise running at http://localhost:${port}`));

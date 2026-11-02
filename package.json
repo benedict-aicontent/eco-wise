@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Wealth Wise: a classroom board game with a simple JSON score database",
+  "description": "Eco Wise: a classroom board game with JSON questions and a simple JSON score database",
   "scripts": {
     "dev": "node dev-server.mjs"
   },

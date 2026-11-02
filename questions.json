@@ -1,0 +1,173 @@
+{
+  "title": "Financial Literacy Quiz",
+  "subject": "Financial Literacy",
+  "language": "Filipino",
+  "questionsPerRound": 10,
+  "shuffleChoices": true,
+  "totalQuestions": 20,
+  "sections": [
+    {
+      "level": "Easy",
+      "type": "multiple_choice",
+      "pointsPerQuestion": 1,
+      "questions": [
+        {
+          "id": 1,
+          "question": "Ano ang tawag sa kakayahang maunawaan at mapamahalaan nang maayos ang sariling pera?",
+          "choices": {
+            "A": "Pamimili",
+            "B": "Financial Literacy",
+            "C": "Pangungutang",
+            "D": "Paglalakbay"
+          },
+          "answer": "B"
+        },
+        {
+          "id": 2,
+          "question": "Alin sa mga sumusunod ang pangunahing pangangailangan?",
+          "choices": {
+            "A": "Sapatos na mamahalin",
+            "B": "Laruan",
+            "C": "Pagkain",
+            "D": "Alahas"
+          },
+          "answer": "C"
+        },
+        {
+          "id": 3,
+          "question": "Si Carla ay nagtatabi ng ₱20 mula sa kaniyang baon araw-araw. Ano ang ipinapakita ng kaniyang ginagawa?",
+          "choices": {
+            "A": "Pagiging mabait na anak dahil tinatanggap niya ito",
+            "B": "Kawalan ng pagpapahalaga sa pera",
+            "C": "Pagiging responsableng kaibigan dahil sa pamimigay ng baon",
+            "D": "Pagiging responsable sa pag-iimpok"
+          },
+          "answer": "D"
+        },
+        {
+          "id": 4,
+          "question": "Bakit mahalagang matukoy ang pagkakaiba ng pangangailangan at kagustuhan?",
+          "choices": {
+            "A": "Upang malaman kung paano gagastusin ang lahat ng pera",
+            "B": "Upang maiwasan ang pagbili ng anumang produkto",
+            "C": "Upang mabili ang lahat ng mamahaling bagay",
+            "D": "Upang malaman kung alin ang dapat unahin sa paggastos"
+          },
+          "answer": "D"
+        },
+        {
+          "id": 5,
+          "question": "Anong institusyon ang nagbibigay ng impormasyon tungkol sa financial literacy sa Pilipinas?",
+          "choices": {
+            "A": "Department of Education",
+            "B": "Bangko Sentral ng Pilipinas",
+            "C": "Department of Health",
+            "D": "Department of the Philippines"
+          },
+          "answer": "B"
+        },
+        {
+          "id": 6,
+          "question": "Ano ang pangunahing layunin ng pag-iimpok?",
+          "choices": {
+            "A": "Magastos agad ang pera",
+            "B": "Makapaghanda para sa hinaharap",
+            "C": "Makautang nang mas malaki",
+            "D": "Makabili ng mamahaling gamit"
+          },
+          "answer": "B"
+        },
+        {
+          "id": 7,
+          "question": "Ano ang layunin ng financial literacy?",
+          "choices": {
+            "A": "Hikayatin ang mga tao na gumastos nang mas malaki dahil mapapasaya sila nito",
+            "B": "Hikayatin ang mga tao na umutang palagi dahil babayaran din naman",
+            "C": "Tulungan ang tao na gumawa ng matalinong desisyong pampinansiyal",
+            "D": "Turuan ang tao na bumili ng mamahaling produkto dahil mas matibay ang mga ito"
+          },
+          "answer": "C"
+        }
+      ]
+    },
+    {
+      "level": "Average",
+      "type": "true_false",
+      "pointsPerQuestion": 1,
+      "questions": [
+        {
+          "id": 8,
+          "question": "Ang isang mag-aaral na inuuna ang pagbili ng pagkain kaysa mamahaling laruan ay nagpapakita ng wastong pamamahala ng pera.",
+          "answer": true
+        },
+        {
+          "id": 9,
+          "question": "Maaaring magkaiba ang tingin ng mga tao sa isang bagay kung ito ay pangangailangan o kagustuhan depende sa kanilang sitwasyon.",
+          "answer": true
+        },
+        {
+          "id": 10,
+          "question": "Ang pag-iimpok ay ginagawa lamang kapag marami nang pera ang isang tao.",
+          "answer": false
+        },
+        {
+          "id": 11,
+          "question": "Ang isang taong marunong magbadyet ay mas nakokontrol kung saan napupunta ang kaniyang pera.",
+          "answer": true
+        },
+        {
+          "id": 12,
+          "question": "Ang pamumuhunan ay isang paraan upang mapalago ang halaga ng pera sa paglipas ng panahon.",
+          "answer": true
+        },
+        {
+          "id": 13,
+          "question": "Ang pagbili ng bagong cellphone kahit maayos pa ang kasalukuyang gamit ay maaaring ituring na kagustuhan.",
+          "answer": true
+        },
+        {
+          "id": 14,
+          "question": "Ang pagiging financial literate ay nakatutulong sa paggawa ng matalinong desisyong pampinansiyal.",
+          "answer": true
+        }
+      ]
+    },
+    {
+      "level": "Hard",
+      "type": "identification",
+      "pointsPerQuestion": 1,
+      "questions": [
+        {
+          "id": 15,
+          "question": "Ito ay tumutukoy sa mga bagay na mahalaga upang mabuhay at gumana nang maayos ang tao.",
+          "answer": "Pangangailangan"
+        },
+        {
+          "id": 16,
+          "question": "Ito ay tumutukoy sa mga bagay na nais lamang magkaroon ng isang tao ngunit hindi kinakailangan upang mabuhay.",
+          "answer": "Kagustuhan"
+        },
+        {
+          "id": 17,
+          "question": "Ito ay tumutukoy sa kakayahang maunawaan at mahusay na mapamahalaan ang sariling pananalapi at yaman.",
+          "answer": "Financial Literacy"
+        },
+        {
+          "id": 18,
+          "question": "Ano ang tawag sa proseso ng pagpaplano kung paano hahatiin at gagamitin ang pera upang matugunan ang mga pangangailangan at layunin?",
+          "answer": "Pagbabadyet"
+        },
+        {
+          "id": 19,
+          "question": "Ano ang tawag sa pagtatabi ng bahagi ng kita upang magamit sa hinaharap?",
+          "answer": "Pag-iimpok"
+        },
+        {
+          "id": 20,
+          "question": "Ano ang tawag sa paggamit ng pera upang magkaroon ng posibilidad na lumago ang halaga nito sa hinaharap?",
+          "answer": "Pamumuhunan"
+        }
+      ]
+    }
+  ]
+}

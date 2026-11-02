@@ -1,4 +1,4 @@
-// Simple JSON "database" for Wealth Wise class records.
+// Simple JSON "database" for Eco Wise class records.
 //
 //   POST   /api/scores   anyone: a student's finished round is saved
 //   GET    /api/scores   teacher PIN required: returns every saved round
@@ -18,7 +18,7 @@ import crypto from 'node:crypto';
 
 const MAX_RECORDS = 2000;
 const MAX_BODY = 4096;
-const BADGES = new Set(['first-roll','sharp-start','streak3','streak5','lap','easy3','avg3','hard2','quick','comeback','century','perfect']);
+const BADGES = new Set(['first-roll','sharp-start','streak3','streak5','lap','easy3','avg3','hard2','quick','comeback','honor','century','perfect']);
 const USE_BLOB = !!process.env.BLOB_READ_WRITE_TOKEN;
 const ON_VERCEL = !!process.env.VERCEL;
 const FILE = process.env.SCORES_FILE || path.join(process.cwd(), 'data', 'scores.json');
@@ -49,15 +49,16 @@ function pinOk(req) {
   return crypto.timingSafeEqual(a, b);
 }
 
-// Accept only the fields we expect, with sensible limits.
+// Accept only the fields we expect, with sensible limits. The score and round length come from questions.json, so allow generous ranges.
 function cleanRecord(b) {
   if (!b || typeof b !== 'object') return null;
   const name = String(b.name ?? '').replace(/[\u0000-\u001f]/g, '').trim().slice(0, 40) || 'Guest';
-  const score = Number(b.score), correct = Number(b.correct);
-  if (!Number.isFinite(score) || score < 0 || score > 250) return null;
-  if (!Number.isFinite(correct) || correct < 0 || correct > 10) return null;
+  const score = Number(b.score), correct = Number(b.correct), total = Math.round(Number(b.total));
+  if (!Number.isFinite(total) || total < 1 || total > 100) return null;
+  if (!Number.isFinite(score) || score < 0 || score > 10000) return null;
+  if (!Number.isFinite(correct) || correct < 0 || correct > total) return null;
   const badges = (Array.isArray(b.badges) ? b.badges : []).filter(x => BADGES.has(x)).slice(0, 12);
-  return { name, score: Math.round(score), correct: Math.round(correct), total: 10, badges, at: new Date().toISOString() };
+  return { name, score: Math.round(score), correct: Math.round(correct), total, badges, at: new Date().toISOString() };
 }
 
 /* ---------- storage: local file ---------- */
@@ -140,6 +141,8 @@ export default async function handler(req, res) {
     return send(res, 200, { ok: true });
   } catch (e) {
     console.error('scores api error:', e && e.message);
+    // Free-plan storage allows only a few saves per second; tell the page to try again shortly.
+    if (/rate|429|too many/i.test(String((e && (e.name + ' ' + e.message)) || ''))) return send(res, 429, { error: 'busy' });
     return send(res, 500, { error: 'server_error' });
   }
 }
