@@ -19,5 +19,10 @@ http.createServer(async (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     return res.end(await readFile(new URL('./questions.json', import.meta.url)));
   }
+  const types = { '.js': 'text/javascript', '.webmanifest': 'application/manifest+json', '.png': 'image/png' };
+  const ext = url.pathname.slice(url.pathname.lastIndexOf('.'));
+  if (types[ext] && /^\/(sw\.js|manifest\.webmanifest|icons\/[\w-]+\.png)$/.test(url.pathname)) {
+    try { res.setHeader('Content-Type', types[ext]); return res.end(await readFile(new URL('.' + url.pathname, import.meta.url))); } catch {}
+  }
   res.statusCode = 404; res.end('Not found');
 }).listen(port, () => console.log(`Eco Wise running at http://localhost:${port}`));

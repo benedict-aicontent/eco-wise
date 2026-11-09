@@ -98,3 +98,14 @@ The free plan has no end date. It is for personal, non-commercial use, and usage
 - Blob storage: 1 GB, 10,000 reads and **2,000 uploads and listings** a month. Each saved round is one upload and each "Load records" is one listing, so about 2,000 rounds a month.
 - Blob speed limit: 15 uploads a second. The game retries automatically when a whole class finishes at the same moment.
 - Going over a limit does not cost money. That feature pauses for up to 30 days. The game still plays, and scores stay on each student's device.
+
+## Online and offline use
+
+Eco Wise is an installable web app. After one visit with internet, the game, the questions and the character screen open and play with no connection.
+
+- **Install on a phone:** Android Chrome: open the site, tap the three dots, then **Install app** (or **Add to Home screen**). iPhone Safari: Share, then **Add to Home Screen**. The icon opens the game full screen.
+- **Scores played offline** are kept on the device and sent to the class records automatically when the phone is online again.
+- **Online:** the game always loads the newest page and `questions.json`. Offline it uses the last saved copy.
+- **Class records** (the teacher PIN screen) need internet. They cannot be viewed offline.
+- If you change the page and want every device to drop its old saved copy at once, change `VERSION` at the top of `sw.js` (for example `eco-wise-v2`).
+- New files to upload to GitHub with `index.html`: `sw.js`, `manifest.webmanifest`, and the `icons` folder.

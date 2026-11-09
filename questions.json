@@ -9,7 +9,7 @@
     {
       "level": "Easy",
       "type": "multiple_choice",
-      "pointsPerQuestion": 7,
+      "pointsPerQuestion": 1,
       "questions": [
         {
           "id": 1,
@@ -93,7 +93,7 @@
     {
       "level": "Average",
       "type": "true_false",
-      "pointsPerQuestion": 7,
+      "pointsPerQuestion": 1,
       "questions": [
         {
           "id": 8,
@@ -135,7 +135,7 @@
     {
       "level": "Hard",
       "type": "identification",
-      "pointsPerQuestion": 6,
+      "pointsPerQuestion": 1,
       "questions": [
         {
           "id": 15,
