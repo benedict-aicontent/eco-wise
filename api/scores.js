@@ -2,7 +2,8 @@
 //
 //   POST   /api/scores   anyone: a student's finished round is saved
 //   GET    /api/scores   teacher PIN required: returns every saved round
-//   DELETE /api/scores   teacher PIN required: deletes every saved round
+//   DELETE /api/scores   teacher PIN required: HIDES every saved round (nothing is erased, so it can be restored)
+//   POST   /api/scores   {"action":"restore"} with the PIN: brings hidden rounds back
 //
 // Storage:
 //   - On Vercel (production): one small JSON file per round in Vercel Blob, so two
@@ -58,12 +59,22 @@ function cleanRecord(b) {
   if (!Number.isFinite(score) || score < 0 || score > 10000) return null;
   if (!Number.isFinite(correct) || correct < 0 || correct > total) return null;
   const badges = (Array.isArray(b.badges) ? b.badges : []).filter(x => BADGES.has(x)).slice(0, 12);
-  return { name, score: Math.round(score), correct: Math.round(correct), total, badges, at: new Date().toISOString() };
+  // A phone re-sending a round it could not send earlier may include the real time it was played.
+  // Only a real past time (within the last 60 days) is accepted; anything else is replaced by the current time.
+  let at = new Date(); let recovered = false;
+  if (b.playedAt) {
+    const t = new Date(String(b.playedAt));
+    if (!isNaN(t) && t.getTime() <= Date.now() + 120000 && t.getTime() >= Date.now() - 60 * 864e5) { at = t; recovered = true; }
+  }
+  const rec = { name, score: Math.round(score), correct: Math.round(correct), total, badges, at: at.toISOString(), savedAt: new Date().toISOString() };
+  if (recovered) rec.recovered = true;
+  return rec;
 }
 
 /* ---------- storage: local file ---------- */
 let chain = Promise.resolve();
 const queue = fn => (chain = chain.then(fn, fn));
+const CLEARED_FILE = FILE + '.cleared';
 async function fileRead() {
   try { const j = JSON.parse(await fs.readFile(FILE, 'utf8')); return Array.isArray(j) ? j : []; }
   catch (e) { return []; }
@@ -72,17 +83,32 @@ async function fileWrite(rows) {
   await fs.mkdir(path.dirname(FILE), { recursive: true });
   await fs.writeFile(FILE, JSON.stringify(rows, null, 2));
 }
+async function fileClearedAt() { try { return new Date((await fs.readFile(CLEARED_FILE, 'utf8')).trim()).getTime() || 0; } catch (e) { return 0; } }
 
 /* ---------- storage: Vercel Blob ---------- */
-async function blobUrls() {
+async function blobList(prefix) {
   const { list } = await import('@vercel/blob');
-  const urls = []; let cursor;
+  const out = []; let cursor;
   do {
-    const r = await list({ prefix: 'scores/', limit: 1000, cursor });
-    for (const b of r.blobs) urls.push(b.url);
+    const r = await list({ prefix, limit: 1000, cursor });
+    for (const b of r.blobs) out.push({ url: b.url, uploadedAt: new Date(b.uploadedAt).getTime() });
     cursor = r.hasMore ? r.cursor : undefined;
-  } while (cursor && urls.length < MAX_RECORDS);
-  return urls.slice(0, MAX_RECORDS);
+  } while (cursor && out.length < MAX_RECORDS);
+  return out.slice(0, MAX_RECORDS);
+}
+
+// The same round can be stored twice (a phone re-sending history). Keep one copy of rounds that match.
+function dedupe(rows) {
+  const sorted = rows.slice().sort((a, b) => String(a.at).localeCompare(String(b.at)));
+  const seen = new Map(); const out = []; let removed = 0;
+  for (const r of sorted) {
+    const key = [r.name, r.score, r.correct, r.total, (r.badges || []).join('|')].join('~');
+    const t = new Date(r.at).getTime();
+    const last = seen.get(key);
+    if (last !== undefined && Math.abs(t - last) < 5 * 60000) { removed++; continue; }
+    seen.set(key, t); out.push(r);
+  }
+  return { rows: out, removed };
 }
 
 const store = {
@@ -95,23 +121,46 @@ const store = {
     }
   },
   async all() {
+    let raw = [], stored = 0, unreadable = 0, hidden = 0;
     if (USE_BLOB) {
-      const urls = await blobUrls(); const rows = [];
-      for (let i = 0; i < urls.length; i += 25) {
-        const part = await Promise.all(urls.slice(i, i + 25).map(u => fetch(u, { cache: 'no-store' }).then(r => r.json()).catch(() => null)));
-        rows.push(...part.filter(Boolean));
+      const [items, marks] = await Promise.all([blobList('scores/'), blobList('meta/cleared-')]);
+      const clearedAt = marks.reduce((m, x) => Math.max(m, x.uploadedAt), 0);
+      stored = items.length;
+      const visible = items.filter(x => x.uploadedAt > clearedAt);
+      hidden = items.length - visible.length;
+      const get = u => fetch(u, { cache: 'no-store' }).then(r => { if (!r.ok) throw new Error('http_' + r.status); return r.json(); });
+      for (let i = 0; i < visible.length; i += 10) {
+        const part = await Promise.all(visible.slice(i, i + 10).map(async x => {
+          try { return await get(x.url); }
+          catch (e) { await new Promise(r => setTimeout(r, 400)); try { return await get(x.url); } catch (e2) { return null; } }
+        }));
+        for (const x of part) { if (x) raw.push(x); else unreadable++; }
       }
-      return rows;
+    } else {
+      const [rows, clearedAt] = await Promise.all([queue(fileRead), fileClearedAt()]);
+      stored = rows.length;
+      raw = rows.filter(r => new Date(r.savedAt || r.at).getTime() > clearedAt);
+      hidden = rows.length - raw.length;
     }
-    return queue(fileRead);
+    const d = dedupe(raw);
+    return { rows: d.rows, stored, unreadable, hidden, duplicates: d.removed };
   },
+  // "Clear all" only hides what exists now. Nothing is erased, so restore() can bring it back.
   async clear() {
     if (USE_BLOB) {
-      const { del } = await import('@vercel/blob');
-      const urls = await blobUrls();
-      for (let i = 0; i < urls.length; i += 100) await del(urls.slice(i, i + 100));
+      const { put } = await import('@vercel/blob');
+      await put(`meta/cleared-${Date.now()}.json`, '{}', { access: 'public', contentType: 'application/json', addRandomSuffix: true });
     } else {
-      await queue(() => fileWrite([]));
+      await queue(async () => { await fs.mkdir(path.dirname(FILE), { recursive: true }); await fs.writeFile(CLEARED_FILE, new Date().toISOString()); });
+    }
+  },
+  async restore() {
+    if (USE_BLOB) {
+      const { del } = await import('@vercel/blob');
+      const marks = await blobList('meta/cleared-');
+      if (marks.length) await del(marks.map(x => x.url));
+    } else {
+      await queue(async () => { try { await fs.unlink(CLEARED_FILE); } catch (e) {} });
     }
   }
 };
@@ -126,6 +175,12 @@ export default async function handler(req, res) {
 
     if (method === 'POST') {
       let body; try { body = await readBody(req); } catch (e) { return send(res, e.message === 'too_large' ? 413 : 400, { error: 'bad_request' }); }
+      if (body && body.action === 'restore') {
+        if (!process.env.TEACHER_PIN) return send(res, 503, { error: 'pin_not_set' });
+        if (!pinOk(req)) return send(res, 401, { error: 'wrong_pin' });
+        await store.restore();
+        return send(res, 200, { ok: true });
+      }
       const rec = cleanRecord(body);
       if (!rec) return send(res, 400, { error: 'bad_record' });
       await store.add(rec);
@@ -136,7 +191,7 @@ export default async function handler(req, res) {
     if (!process.env.TEACHER_PIN) return send(res, 503, { error: 'pin_not_set' });
     if (!pinOk(req)) return send(res, 401, { error: 'wrong_pin' });
 
-    if (method === 'GET') return send(res, 200, { records: await store.all() });
+    if (method === 'GET') { const a = await store.all(); return send(res, 200, { records: a.rows, stored: a.stored, unreadable: a.unreadable, hidden: a.hidden, duplicates: a.duplicates }); }
     await store.clear();
     return send(res, 200, { ok: true });
   } catch (e) {

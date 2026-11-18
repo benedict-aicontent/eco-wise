@@ -109,3 +109,15 @@ Eco Wise is an installable web app. After one visit with internet, the game, the
 - **Class records** (the teacher PIN screen) need internet. They cannot be viewed offline.
 - If you change the page and want every device to drop its old saved copy at once, change `VERSION` at the top of `sw.js` (for example `eco-wise-v2`).
 - New files to upload to GitHub with `index.html`: `sw.js`, `manifest.webmanifest`, and the `icons` folder.
+
+## Auto-player for testing
+
+`tools/auto-play.js` plays full rounds by itself with random answers. Open the game, open the browser console (F12), paste the file and press Enter. Change `ROUNDS` at the top for how many rounds. By default it is a dry run and sends nothing to the class records; set `SAVE_TO_RECORDS = true` to save the test rounds online. Type `stopAutoPlay()` to stop early.
+
+## Safer records
+
+- **Clear all** now asks you to type DELETE and only hides the records. Nothing is erased. After clearing, a **Restore cleared** button appears and brings every hidden round back. Hidden files stay in your Blob store under `scores/`, and the hide marker is a small file under `meta/` (deleting the `meta/cleared-...` files by hand also restores everything).
+- **Phones re-send unsent rounds automatically.** Every round stays in the phone's history until the server confirms it. When the game opens online, unsent rounds (up to 30 at a time) are sent with the time they were really played. Only real times from the last 60 days are accepted.
+- **Repeated rounds are merged** when the records are shown (same player, score and badges within 5 minutes).
+- Change the teacher PIN: Vercel, Settings, Environment Variables, edit `TEACHER_PIN`, then redeploy.
+- Press **Download CSV** now and then to keep a copy that nobody can delete.

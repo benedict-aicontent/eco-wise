@@ -379,6 +379,7 @@ td .key{display:block;font-size:12px;color:var(--muted);font-weight:500}
         <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="Enter PIN">
         <button class="btn" id="loadClass" type="button">Load records</button>
         <button class="btn ghost" id="clearClass" type="button">Clear all</button>
+        <button class="btn ghost" id="restoreClass" type="button" hidden>Restore cleared</button>
       </div>
       <p class="note" id="classNote" style="margin:0 0 8px"></p>
       <div class="tablewrap"><table><thead><tr><th>#</th><th>Player</th><th>Score</th><th>Correct</th><th>Badges</th><th>Played</th></tr></thead><tbody id="classBody"></tbody></table></div>
@@ -1083,15 +1084,26 @@ async function loadClass(){
     const j=await api('GET',null,pin); setPin(pin);
     classRows=(j.records||[]).map(cleanRow);
     note.textContent=classRows.length?'Showing every saved round.':'Nothing recorded yet. Rounds appear here as players finish.';
+    const extra=[]; if(j.duplicates>0) extra.push(`${j.duplicates} repeated round${j.duplicates>1?'s were':' was'} merged`);
+    $('#restoreClass').hidden=!(j.hidden>0);
+    if(j.unreadable>0) note.textContent=`Showing ${classRows.length} of ${j.stored} saved rounds. ${j.unreadable} could not be read just now. Wait a minute and tap Load records again. If it keeps happening, the free storage limit may be used up.`;
+    else if(typeof j.stored==='number') note.textContent+=` (${j.stored} stored on the server.)`;
+    if(extra.length&&!(j.unreadable>0)) note.textContent+=' '+extra.join('. ')+'.';
+    if(j.hidden>0) note.textContent+=` ${j.hidden} cleared round${j.hidden>1?'s are':' is'} hidden, not erased. Tap Restore cleared to bring them back.`;
     renderRecords();
   }catch(e){ note.textContent=apiMessage(e); }
 }
-let clearArm=0;
 async function clearClass(){
-  const btn=$('#clearClass'), note=$('#classNote');
-  if(!clearArm){ btn.textContent='Tap again to delete everything'; clearArm=setTimeout(()=>{clearArm=0;btn.textContent='Clear all';},4000); return; }
-  clearTimeout(clearArm); clearArm=0; btn.textContent='Clear all';
-  try{ await api('DELETE',null,$('#pin').value.trim()); classRows=[]; note.textContent='All class records were deleted.'; renderRecords(); }
+  const note=$('#classNote');
+  const typed=window.prompt('This hides every class record from this screen (nothing is erased and you can restore it).\nType DELETE to continue.');
+  if(typed===null) return;
+  if(typed.trim().toUpperCase()!=='DELETE'){ note.textContent='Cancelled. You must type DELETE.'; return; }
+  try{ await api('DELETE',null,$('#pin').value.trim()); classRows=[]; $('#restoreClass').hidden=false; note.textContent='Records cleared from view, not erased. Tap Restore cleared to bring them back.'; renderRecords(); }
+  catch(e){ note.textContent=apiMessage(e); }
+}
+async function restoreClass(){
+  const note=$('#classNote');
+  try{ await api('POST',{action:'restore'},$('#pin').value.trim()); await loadClass(); }
   catch(e){ note.textContent=apiMessage(e); }
 }
 function subscribeClass(o){
@@ -1122,9 +1134,9 @@ async function downloadRows(rows,noteEl){
   try{ await o.dl.save({filename:'eco-wise-scores.csv',data:toCSV(rows)}); noteEl.textContent=''; }
   catch(e){ noteEl.textContent=(e&&e.code==='declined')?'':'Could not save the file.'; }
 }
-/* ---- offline queue: scores that could not be sent are kept and re-sent when the connection is back ---- */
-const PKEY='ww_pending';
-function queuePending(rec){ const q=load(PKEY,[]); if(!q.some(x=>x.at===rec.at&&x.name===rec.name)){ q.push(rec); save(PKEY,q.slice(-200)); } }
+/* ---- unsent rounds: every round stays in this device's history until the server confirms it, then it is marked sent ---- */
+const PKEY='ww_pending'; /* old queue key from the previous version; its rounds are also in the history, so it is just emptied */
+function markSent(at){ const h=load(HKEY,[]); let ch=false; h.forEach(r=>{ if(r.at===at&&!r.sent){ r.sent=true; ch=true; } }); if(ch) save(HKEY,h); }
 async function sendRec(rec,sh){
   /* Retry a few times with a random pause, so a whole class finishing together does not overload the free storage limit. */
   const tries=(navigator.onLine===false)?1:4;
@@ -1138,18 +1150,24 @@ async function sendRec(rec,sh){
   }
   return 'fail';
 }
-let flushing=false;
-async function flushPending(){
-  if(HAS_CLAUDE||flushing||navigator.onLine===false) return;
-  const q=load(PKEY,[]); if(!q.length) return;
-  flushing=true;
-  const left=[];
-  for(const rec of q){ const r=await sendRec(rec,null); if(r==='fail') left.push(rec); else if(r==='config'){ left.push(rec); } }
-  save(PKEY,left); flushing=false;
-  const sh=$('#saveShared'); if(sh&&q.length>left.length&&!left.length&&S&&S.saved) sh.textContent='Saved to class records.';
+let recovering=false;
+async function recoverHistory(){
+  if(HAS_CLAUDE||recovering||navigator.onLine===false) return;
+  const cutoff=Date.now()-120000;
+  const todo=load(HKEY,[]).filter(r=>!r.sent&&new Date(r.at).getTime()<cutoff).slice(-30);
+  try{ localStorage.removeItem(PKEY); }catch(e){}
+  if(!todo.length) return;
+  recovering=true;
+  for(const r of todo){
+    const res=await sendRec({name:r.name,score:r.score,correct:r.correct,total:r.total,badges:r.badges,playedAt:r.at},null);
+    if(res!=='ok') break; /* offline, busy or not set up: try again the next time the game opens */
+    markSent(r.at);
+    await sleep(350);
+  }
+  recovering=false;
 }
-window.addEventListener('online',flushPending);
-setTimeout(flushPending,2500);
+window.addEventListener('online',recoverHistory);
+setTimeout(recoverHistory,3000);
 async function saveRound(){
   if(S.saved) return; S.saved=true;
   const rec={name:pname,score:S.score,correct:S.correct,total:TOTAL_Q,badges:[...S.round],at:new Date().toISOString()};
@@ -1158,9 +1176,9 @@ async function saveRound(){
   const sh=$('#saveShared'); sh.textContent='Saving to class records...';
   if(!HAS_CLAUDE){
     const r=await sendRec(rec,sh);
-    if(r==='ok') sh.textContent='Saved to class records.';
+    if(r==='ok'){ markSent(rec.at); sh.textContent='Saved to class records.'; }
     else if(r==='config') sh.textContent='Class records are not set up on this site yet. The score is still on this device.';
-    else { queuePending(rec); sh.textContent=(navigator.onLine===false?'You are offline.':'Could not reach class records.')+' The score is saved on this device and will be sent automatically when you are online again.'; }
+    else { sh.textContent=(navigator.onLine===false?'You are offline.':'Could not reach class records.')+' The score is saved on this device and will be sent automatically when you are online again.'; }
     return;
   }
   const o=await capsReady();
@@ -1180,6 +1198,7 @@ $('#viewRec2').addEventListener('click',()=>openRecords('results'));
 $('#recBack').addEventListener('click',()=>show(prevScreen));
 $('#loadClass').addEventListener('click',loadClass);
 $('#clearClass').addEventListener('click',clearClass);
+$('#restoreClass').addEventListener('click',restoreClass);
 $('#pin').addEventListener('keydown',e=>{ if(e.key==='Enter') loadClass(); });
 $('#sortNew').addEventListener('click',()=>{recSort='newest';renderRecords();});
 $('#sortTop').addEventListener('click',()=>{recSort='score';renderRecords();});

@@ -1,4 +1,5 @@
 node_modules/
+eco-wise-bk/
 .vercel/
 .env
 .env.*
